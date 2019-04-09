@@ -11,3 +11,5 @@ Finds all processes with the specified name and calculates their stats using pid
 * MAX value from all processes
 * AVG value for all processes
 * COUNT of all processes
+
+Note that some stats are available only in root mode, so pidstat calls via sudo.
