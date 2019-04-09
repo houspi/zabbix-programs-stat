@@ -48,7 +48,8 @@ function get_cpustat () {
     AGG=$2
     NOW=`date +%s`
     LASTMOD=0
-    STATFILE=${TMP_TEMPLATE}${PROG_NAME}.cpu.pidstat
+    STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
+    STATFILE=${TMP_TEMPLATE}${STATFILE}.cpu.pidstat
     if [ -r $STATFILE ]; then
         LASTMOD=`stat -c "%Y" $STATFILE`
     fi
@@ -85,8 +86,8 @@ function get_stat_in_bytes () {
     AGG=$3
     NOW=`date +%s`
     LASTMOD=0
-    STATFILE=${TMP_TEMPLATE}${PROG_NAME}.${REPORT_OPTION}.pidstat
-    echo STATFILE=$STATFILE
+    STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
+    STATFILE=${TMP_TEMPLATE}${STATFILE}.${REPORT_OPTION}.pidstat
     if [ -r $STATFILE ]; then
         LASTMOD=`stat -c "%Y" $STATFILE`
     fi
