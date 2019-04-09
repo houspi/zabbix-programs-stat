@@ -120,7 +120,8 @@ function get_count () {
     expr `ps ax | grep "$PROG_NAME" | wc -l` - 3
 }
 
-
+# LLD mode
+# In LLD mode, the script returns a list of names of all running processes.
 function lld () {
     types_stat="vsz rss ioread iowrite cpu_user cpu_system"
     aggregate_functions="min max avg sum"
@@ -159,6 +160,7 @@ case "${RESOURCE}" in
         get_count
     ;;
     "lld" )
+        #comment out next line if you don't need LLD mode
         lld
     ;;
     * )
