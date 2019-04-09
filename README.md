@@ -4,7 +4,8 @@ Calculates some stats for running programs.
 Takes the program name as an argument.
 Finds all processes with the specified name and calculates their stats using pidstat.
 
-* mem stat, I/O stat, cpu stat.
+* LLD mode support
+* MEM stat, I/O stat, CPU stat.
 * SUM of values for all processes
 * MIN value from all processes
 * MAX value from all processes
