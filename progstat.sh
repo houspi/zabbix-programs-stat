@@ -3,10 +3,11 @@
 # Calculates some stats for running programs.
 # Takes the program name as an argument
 # Finds all processes with the specified name and calculates their stats using pidstat.
-# mem stat, I/O stat, cpu stat.
+# mem usage, I/O, cpu usage.
+# Aggregates:
 # SUM of values for all processes
-# MIN value from all processes
-# MAX value from all processes
+# MIN value of all processes
+# MAX value of all processes
 # AVG value for all processes
 # COUNT of all processes
 
@@ -14,6 +15,8 @@ SUDO=/usr/bin/sudo
 PIDSTAT=/usr/bin/pidstat
 AWK=/usr/bin/awk
 TMP_TEMPLATE="/tmp/zabbix."
+types_stat="vsz rss ioread iowrite cpu_user cpu_system"
+aggregate_functions="min max avg sum"
 
 PROG_NAME=$1
 RESOURCE=$2
@@ -25,12 +28,21 @@ if [ ! -x $PIDSTAT ]; then
     echo command $PIDSTAT not found
     exit 1
 fi
+
 if [ ! ${PROG_NAME} ]; then
-    PROG_NAME=_lld
+    echo PROG_NAME not specified
+    exit 1
 fi
+
 if [ ! ${RESOURCE} ]; then
-    RESOURCE=lld
+    if [ "${PROG_NAME}" == "_LLD" ]; then
+        RESOURCE=lld
+    else
+        echo RESOURCE not specified
+        exit 1
+    fi
 fi
+
 if [ ! ${AGG_TYPE} ]; then
     AGG_TYPE=sum
 fi
@@ -65,7 +77,7 @@ function get_cpustat () {
             $AWK -v column="$CPUTYPE" 'NR>1 {if( MAX == "" || MAX < $column ) { MAX=$column }} END {print int(MAX)}' $STATFILE
         ;;
         "avg" )
-            $AWK -v column="$CPUTYPE" 'NR>1 { SUM += $column } END {print int(SUM/(NR-1))}' $STATFILE
+            $AWK -v column="$CPUTYPE" 'NR>1 { SUM += $column } END { print (NR>1)?int(SUM/(NR-1)):0 }' $STATFILE
         ;;
         * )
             $AWK -v column="$CPUTYPE" 'NR>1 { SUM += $column } END {print int(SUM)}' $STATFILE
@@ -103,7 +115,7 @@ function get_stat_in_bytes () {
             $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MAX == "" || MAX < $column ) { MAX=$column }} END {print MAX*1024}' $STATFILE
         ;;
         "avg" )
-            $AWK -v column="$COLUMN_NUMBER" 'NR>1 { SUM += $column } END {print int((SUM*1024)/(NR-1))}' $STATFILE
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 { SUM += $column } END { print (NR>1)?int((SUM*1024)/(NR-1)):0 }' $STATFILE
         ;;
         * )
             $AWK -v column="$COLUMN_NUMBER" 'NR>1 { SUM += $column } END {print int(SUM*1024)}' $STATFILE
@@ -122,9 +134,9 @@ function get_count () {
 
 # LLD mode
 # In LLD mode, the script returns a list of names of all running processes.
+# Use it with caution.
+# It produces 25 items for each process, therefore you can get a huge summary list of items.
 function lld () {
-    types_stat="vsz rss ioread iowrite cpu_user cpu_system"
-    aggregate_functions="min max avg sum"
     echo {"data":[
     for program in `ps ax -o comm=Command | tail -n +2 | sort | uniq` ; do
         for stat in $types_stat ; do
@@ -160,11 +172,11 @@ case "${RESOURCE}" in
         get_count
     ;;
     "lld" )
-        #comment out next line if you don't need LLD mode
+        #Uncomment the next line if you need LLD mode
         lld
     ;;
     * )
-        echo -1
+        echo Wrong resource type. Must be: $types_stat
         exit 1
     ;;
 esac
