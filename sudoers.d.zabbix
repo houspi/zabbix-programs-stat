@@ -1,0 +1,3 @@
+Cmnd_Alias STAT = /usr/bin/pidstat *
+%zabbix  ALL=(ALL)  NOPASSWD: STAT
+
