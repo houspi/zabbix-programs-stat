@@ -15,14 +15,14 @@ SUDO=/usr/bin/sudo
 PIDSTAT=/usr/bin/pidstat
 AWK=/usr/bin/awk
 TMP_TEMPLATE="/tmp/zabbix."
-types_stat="vsz rss ioread iowrite cpu_user cpu_system"
+types_stat="vsz rss pmem ioread iowrite cpu_user cpu_system"
 aggregate_functions="min max avg sum"
 
 PROG_NAME=$1
 RESOURCE=$2
 AGG_TYPE=$3
 MAXCOUNT=10
-CACHEAGE=60
+CACHEAGE=90
 
 if [ ! -x $PIDSTAT ]; then
     echo command $PIDSTAT not found
@@ -48,58 +48,20 @@ if [ ! ${AGG_TYPE} ]; then
 fi
 
 
-# get_cpustat
-# Report CPU utilization.
-# CPUTYPE - cpu utilization type column number
-#   4 - user level
-#   5 - system level (kernel)
-# AGG - aggregate function
-#   min max avg sum
-function get_cpustat () {
-    CPUTYPE=$1 
-    AGG=$2
-    NOW=`date +%s`
-    LASTMOD=0
-    STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
-    STATFILE=${TMP_TEMPLATE}${STATFILE}.cpu.pidstat
-    if [ -r $STATFILE ]; then
-        LASTMOD=`stat -c "%Y" $STATFILE`
-    fi
-    let "AGE = $NOW - $LASTMOD"
-    if [ $AGE -gt $CACHEAGE ]; then
-        $SUDO $PIDSTAT -C $PROG_NAME -u -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
-    fi
-    case "${AGG}" in
-        "min" )
-            $AWK -v column="$CPUTYPE" 'NR>1 {if( MIN == "" || MIN > $column ) { MIN=$column }} END {print int(MIN)}' $STATFILE
-        ;;
-        "max" )
-            $AWK -v column="$CPUTYPE" 'NR>1 {if( MAX == "" || MAX < $column ) { MAX=$column }} END {print int(MAX)}' $STATFILE
-        ;;
-        "avg" )
-            $AWK -v column="$CPUTYPE" 'NR>1 { SUM += $column } END { print (NR>1)?int(SUM/(NR-1)):0 }' $STATFILE
-        ;;
-        * )
-            $AWK -v column="$CPUTYPE" 'NR>1 { SUM += $column } END {print int(SUM)}' $STATFILE
-        ;;
-    esac
-}
-
 # get_stat_in_bytes
-# Report mem, I/O stats.
 # REPORT_OPTION
-#   -d | -r option for call pidstat
-# COLUMN_NUMBER - column number with required value
+#   -d | -r | -u option for call pidstat
+# COLUMN_NUMBER - column number with required values
 # AGG - aggregate function
 #   min max avg sum
 function get_stat_in_bytes () {
     REPORT_OPTION=$1
     COLUMN_NUMBER=$2
     AGG=$3
-    NOW=`date +%s`
-    LASTMOD=0
     STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
     STATFILE=${TMP_TEMPLATE}${STATFILE}.${REPORT_OPTION}.pidstat
+    NOW=`date +%s`
+    LASTMOD=0
     if [ -r $STATFILE ]; then
         LASTMOD=`stat -c "%Y" $STATFILE`
     fi
@@ -107,12 +69,15 @@ function get_stat_in_bytes () {
     if [ $AGE -gt $CACHEAGE ]; then
         $SUDO $PIDSTAT -C $PROG_NAME ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
     fi
+    if [ ! -s $STATFILE ]; then 
+        sleep $MAXCOUNT
+    fi
     case "${AGG}" in
         "min" )
-            $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MIN == "" || MIN > $column ) { MIN=$column }} END {print MIN*1024}' $STATFILE
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MIN == "" || MIN > $column ) { MIN=$column }} END {print int(MIN*1024)}' $STATFILE
         ;;
         "max" )
-            $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MAX == "" || MAX < $column ) { MAX=$column }} END {print MAX*1024}' $STATFILE
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MAX == "" || MAX < $column ) { MAX=$column }} END {print int(MAX*1024)}' $STATFILE
         ;;
         "avg" )
             $AWK -v column="$COLUMN_NUMBER" 'NR>1 { SUM += $column } END { print (NR>1)?int((SUM*1024)/(NR-1)):0 }' $STATFILE
@@ -123,8 +88,48 @@ function get_stat_in_bytes () {
     esac
 }
 
+# get_stat_as_is
+# REPORT_OPTION
+#   -d | -r | -u option for call pidstat
+# COLUMN_NUMBER - column number with required values
+# AGG - aggregate function
+#   min max avg sum
+function get_stat_as_is () {
+    REPORT_OPTION=$1
+    COLUMN_NUMBER=$2
+    AGG=$3
+    STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
+    STATFILE=${TMP_TEMPLATE}${STATFILE}.${REPORT_OPTION}.pidstat
+    NOW=`date +%s`
+    LASTMOD=0
+    if [ -r $STATFILE ]; then
+        LASTMOD=`stat -c "%Y" $STATFILE`
+    fi
+    let "AGE = $NOW - $LASTMOD"
+    if [ $AGE -gt $CACHEAGE ]; then
+        $SUDO $PIDSTAT -C $PROG_NAME ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
+    fi
+    if [ ! -s $STATFILE ]; then 
+        sleep $MAXCOUNT
+    fi
+    case "${AGG}" in
+        "min" )
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MIN == "" || MIN > $column ) { MIN=$column }} END {print MIN}' $STATFILE
+        ;;
+        "max" )
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 {if( MAX == "" || MAX < $column ) { MAX=$column }} END {print MAX}' $STATFILE
+        ;;
+        "avg" )
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 { SUM += $column } END { print (NR>1)?SUM/(NR-1):0 }' $STATFILE
+        ;;
+        * )
+            $AWK -v column="$COLUMN_NUMBER" 'NR>1 { SUM += $column } END {print SUM}' $STATFILE
+        ;;
+    esac
+}
+
 # get_count
-# Report the count of running programs
+# Report the count of running program's instances
 function get_count () {
     # -1 call of this program
     # -2 grep
@@ -132,12 +137,13 @@ function get_count () {
     expr `ps ax | grep "$PROG_NAME" | wc -l` - 3
 }
 
+
 # LLD mode
 # In LLD mode, the script returns a list of names of all running processes.
 # Use it with caution.
 # It produces 25 items for each process, therefore you can get a huge summary list of items.
 function lld () {
-    echo {"data":[
+    echo {\"data\":[
     for program in `ps ax -o comm=Command | tail -n +2 | sort | uniq` ; do
         for stat in $types_stat ; do
             for func in $aggregate_functions ; do
@@ -146,6 +152,7 @@ function lld () {
         done
         echo {\"{#PROGNAME}\":\"$program\", \"{#STATSNAME}\":\"count\", \"{#AGG_FUNC}\":\"count\"},
     done
+    echo {\"{#MODE}\":\"_LLD\"}
     echo ]}
 }
 
@@ -156,6 +163,9 @@ case "${RESOURCE}" in
     "rss" )
         get_stat_in_bytes -r 7 $AGG_TYPE
     ;;
+    "pmem" )
+        get_stat_as_is -r 8 $AGG_TYPE
+    ;;
     "ioread" )
         get_stat_in_bytes -d 4 $AGG_TYPE
     ;;
@@ -163,16 +173,15 @@ case "${RESOURCE}" in
         get_stat_in_bytes -d 5 $AGG_TYPE
     ;;
     "cpu_user" )
-        get_cpustat 4 $AGG_TYPE
+        get_stat_as_is -u 4 $AGG_TYPE
     ;;
     "cpu_system" )
-        get_cpustat 5 $AGG_TYPE
+        get_stat_as_is -u 5 $AGG_TYPE
     ;;
     "count" )
         get_count
     ;;
     "lld" )
-        #Uncomment the next line if you need LLD mode
         lld
     ;;
     * )
