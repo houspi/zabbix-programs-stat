@@ -19,7 +19,7 @@ my %processes = (
     'nmbd' => 'Samba NetBIOS',
     'smbd' => 'Samba',
     'winbind' => 'Samba NSS',
-# combine all Samba services into one item
+# to combine all Samba services into one item
 # comment out previous three lines and uncomment next one
 #    'smbd|nmbd|winbind' => 'Samba',
     'zabbix_agent' => 'Zabbix agent',
