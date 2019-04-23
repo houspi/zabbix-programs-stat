@@ -13,3 +13,8 @@ Finds all processes with the specified name and calculates their stats using pid
 * COUNT of all processes
 
 Note that some stats are available only in root mode, so pidstat calls via sudo.
+
+In LLD mode, the script returns a list of names of all running processes.
+Use it with caution.
+It produces 41 items for each process, therefore you can get a huge summary list of items.
+
