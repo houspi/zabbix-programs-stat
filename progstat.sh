@@ -15,7 +15,7 @@ SUDO=/usr/bin/sudo
 PIDSTAT=/usr/bin/pidstat
 AWK=/usr/bin/awk
 TMP_TEMPLATE="/tmp/zabbix."
-types_stat="vsz rss pmem ioread iowrite cpu_user cpu_system"
+types_stat="minflt majflt vsz rss pmem ioread iowrite iocwr pu_user cpu_system"
 aggregate_functions="min max avg sum"
 
 PROG_NAME=$1
@@ -58,7 +58,7 @@ function get_stat_in_bytes () {
     REPORT_OPTION=$1
     COLUMN_NUMBER=$2
     AGG=$3
-    STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
+    STATFILE=`echo -n ${PROG_NAME} | sed 's/[\/|]/_/g'`
     STATFILE=${TMP_TEMPLATE}${STATFILE}.${REPORT_OPTION}.pidstat
     NOW=`date +%s`
     LASTMOD=0
@@ -67,7 +67,7 @@ function get_stat_in_bytes () {
     fi
     let "AGE = $NOW - $LASTMOD"
     if [ $AGE -gt $CACHEAGE ]; then
-        $SUDO $PIDSTAT -C $PROG_NAME ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
+        $SUDO $PIDSTAT -C "$PROG_NAME" ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
     fi
     if [ ! -s $STATFILE ]; then 
         sleep $MAXCOUNT
@@ -88,6 +88,7 @@ function get_stat_in_bytes () {
     esac
 }
 
+
 # get_stat_as_is
 # REPORT_OPTION
 #   -d | -r | -u option for call pidstat
@@ -98,7 +99,7 @@ function get_stat_as_is () {
     REPORT_OPTION=$1
     COLUMN_NUMBER=$2
     AGG=$3
-    STATFILE=`echo -n ${PROG_NAME} | sed 's/\//_/g'`
+    STATFILE=`echo -n ${PROG_NAME} | sed 's/[\/|]/_/g'`
     STATFILE=${TMP_TEMPLATE}${STATFILE}.${REPORT_OPTION}.pidstat
     NOW=`date +%s`
     LASTMOD=0
@@ -107,7 +108,7 @@ function get_stat_as_is () {
     fi
     let "AGE = $NOW - $LASTMOD"
     if [ $AGE -gt $CACHEAGE ]; then
-        $SUDO $PIDSTAT -C $PROG_NAME ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
+        $SUDO $PIDSTAT -C "$PROG_NAME" ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
     fi
     if [ ! -s $STATFILE ]; then 
         sleep $MAXCOUNT
@@ -127,6 +128,7 @@ function get_stat_as_is () {
         ;;
     esac
 }
+
 
 # get_count
 # Report the count of running program's instances
@@ -156,7 +158,15 @@ function lld () {
     echo ]}
 }
 
+ 
+
 case "${RESOURCE}" in
+    "minflt" )
+        get_stat_in_bytes -r 4 $AGG_TYPE
+    ;;
+    "majflt" )
+        get_stat_in_bytes -r 5 $AGG_TYPE
+    ;;
     "vsz" )
         get_stat_in_bytes -r 6 $AGG_TYPE
     ;;
@@ -171,6 +181,12 @@ case "${RESOURCE}" in
     ;;
     "iowrite" )
         get_stat_in_bytes -d 5 $AGG_TYPE
+    ;;
+    "iocwr" )
+        get_stat_in_bytes -d 6 $AGG_TYPE
+    ;;
+    "iodelay" )
+        get_stat_as_is -d 7 $AGG_TYPE
     ;;
     "cpu_user" )
         get_stat_as_is -u 4 $AGG_TYPE
