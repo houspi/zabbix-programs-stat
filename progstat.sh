@@ -15,7 +15,7 @@ SUDO=/usr/bin/sudo
 PIDSTAT=/usr/bin/pidstat
 AWK=/usr/bin/awk
 TMP_TEMPLATE="/tmp/zabbix."
-types_stat="minflt majflt vsz rss pmem ioread iowrite iocwr pu_user cpu_system"
+types_stat="minflt majflt vsz rss pmem ioread iowrite iocwr cpu_user cpu_system"
 aggregate_functions="min max avg sum"
 
 PROG_NAME=$1
@@ -67,7 +67,7 @@ function get_stat_in_bytes () {
     fi
     let "AGE = $NOW - $LASTMOD"
     if [ $AGE -gt $CACHEAGE ]; then
-        $SUDO $PIDSTAT -C "$PROG_NAME" ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
+        $SUDO $PIDSTAT -C "$PROG_NAME" ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" | sed 's/,/./g' > $STATFILE
     fi
     if [ ! -s $STATFILE ]; then 
         sleep $MAXCOUNT
@@ -108,7 +108,7 @@ function get_stat_as_is () {
     fi
     let "AGE = $NOW - $LASTMOD"
     if [ $AGE -gt $CACHEAGE ]; then
-        $SUDO $PIDSTAT -C "$PROG_NAME" ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" > $STATFILE
+        $SUDO $PIDSTAT -C "$PROG_NAME" ${REPORT_OPTION} -p ALL 1 $MAXCOUNT | grep "^Average:" | sed 's/,/./g' > $STATFILE
     fi
     if [ ! -s $STATFILE ]; then 
         sleep $MAXCOUNT
@@ -136,14 +136,14 @@ function get_count () {
     # -1 call of this program
     # -2 grep
     # -3 expr
-    expr `ps ax | grep "$PROG_NAME" | wc -l` - 3
+    ps -C "$PROG_NAME" | tail +2 | wc -l
 }
 
 
 # LLD mode
 # In LLD mode, the script returns a list of names of all running processes.
 # Use it with caution.
-# It produces 25 items for each process, therefore you can get a huge summary list of items.
+# It produces 41 items for each process, therefore you can get a huge summary list of items.
 function lld () {
     echo {\"data\":[
     for program in `ps ax -o comm=Command | tail -n +2 | sort | uniq` ; do
