@@ -133,9 +133,6 @@ function get_stat_as_is () {
 # get_count
 # Report the count of running program's instances
 function get_count () {
-    # -1 call of this program
-    # -2 grep
-    # -3 expr
     ps -C "$PROG_NAME" | tail +2 | wc -l
 }
 
