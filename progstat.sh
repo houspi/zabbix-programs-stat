@@ -22,7 +22,7 @@ PROG_NAME=$1
 RESOURCE=$2
 AGG_TYPE=$3
 MAXCOUNT=10
-CACHEAGE=90
+CACHEAGE=50
 
 if [ ! -x $PIDSTAT ]; then
     echo command $PIDSTAT not found
