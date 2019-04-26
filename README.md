@@ -18,3 +18,4 @@ In LLD mode, the script returns a list of names of all running processes.
 Use it with caution.
 It produces 41 items for each process, therefore you can get a huge summary list of items.
 
+![CPU System Usage](CpuSystemSum.png)
