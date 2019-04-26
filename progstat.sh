@@ -22,7 +22,7 @@ PROG_NAME=$1
 RESOURCE=$2
 AGG_TYPE=$3
 MAXCOUNT=10
-CACHEAGE=50
+CACHEAGE=90
 
 if [ ! -x $PIDSTAT ]; then
     echo command $PIDSTAT not found
@@ -133,7 +133,7 @@ function get_stat_as_is () {
 # get_count
 # Report the count of running program's instances
 function get_count () {
-    ps -C "$PROG_NAME" | tail +2 | wc -l
+    ps -C `echo "$PROG_NAME" | sed 's/|/,/g'` | tail +2 | wc -l
 }
 
 

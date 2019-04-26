@@ -5,19 +5,20 @@ use strict;
 #
 # Write your process list here.
 my %processes = (
-    'auth' => 'Dovecot auth',
+    'auth'    => 'Dovecot auth',
     'dovecot' => 'Dovecot',
-    'exim' => 'Exim',
-    'httpd|apach' => 'Apache',
+    'exim'    => 'Exim',
+    'httpd|/usr/sbin/apach' => 'Apache',
 #    'httpd' => 'Apache',
-#    'apach' => 'Apache',
+#    '/usr/sbin/apach' => 'Apache',
     'master' => 'Postfix',
-    'mysql' => 'Mysql',
-    'nginx' => 'Nginx',
-    'postgres' => 'PostgreSQL',
+    'mysqld'  => 'Mysql',
+    'nginx'  => 'Nginx',
+    'otrs.Daemon' => 'OTRS Daemon',
+    'postgres'    => 'PostgreSQL',
     'PassengerAgent' => 'Phusion Passenger',
-    'nmbd' => 'Samba NetBIOS',
-    'smbd' => 'Samba',
+    'nmbd'    => 'Samba NetBIOS',
+    'smbd'    => 'Samba',
     'winbind' => 'Samba NSS',
 # to combine all Samba services into one item
 # comment out previous three lines and uncomment next one
