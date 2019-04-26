@@ -14,7 +14,6 @@ my %processes = (
     'master' => 'Postfix',
     'mysqld'  => 'Mysql',
     'nginx'  => 'Nginx',
-    'otrs.Daemon' => 'OTRS Daemon',
     'postgres'    => 'PostgreSQL',
     'PassengerAgent' => 'Phusion Passenger',
     'nmbd'    => 'Samba NetBIOS',
